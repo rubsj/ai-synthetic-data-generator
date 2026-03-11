@@ -6,7 +6,7 @@ Generate synthetic Q&A training data, evaluate quality with LLM-as-Judge, analyz
 ![License](https://img.shields.io/badge/License-MIT-green)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/rubsj/ai-portfolio/main/01-synthetic-data-home-diy/docs/screenshots/dashboard.png" alt="Streamlit Dashboard" width="800"/>
+  <img src="https://raw.githubusercontent.com/rubsj/ai-synthetic-data-generator/main/docs/screenshots/dashboard.png" alt="Streamlit Dashboard" width="800"/>
 </p>
 
 **Live Dashboard:** Deploying in Week 8 of the portfolio sprint. Link will be added here.
@@ -25,13 +25,13 @@ Inter-rater agreement (LLM judge vs manual labels): 81.7%.
 V1 had two dominant failure modes: `incomplete_answer` (50%) and `poor_quality_tips` (43%). Both concentrated in plumbing and HVAC. Electrical had zero failures because its template was already specific enough. Once I found the cluster, I fixed the template that produced it.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/rubsj/ai-portfolio/main/01-synthetic-data-home-diy/docs/screenshots/failure_analysis.png" alt="Failure Analysis Heatmap" width="700"/>
+  <img src="https://raw.githubusercontent.com/rubsj/ai-synthetic-data-generator/main/docs/screenshots/failure_analysis.png" alt="Failure Analysis Heatmap" width="700"/>
 </p>
 
 Individual correction alone hit 66.7% reduction. Template improvement is the higher-leverage fix: it eliminates failure classes at the source instead of patching outputs one at a time. The combined pipeline (template improvement + individual correction) reached 0.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/rubsj/ai-portfolio/main/01-synthetic-data-home-diy/docs/screenshots/correction_pipeline.png" alt="Correction Pipeline" width="700"/>
+  <img src="https://raw.githubusercontent.com/rubsj/ai-synthetic-data-generator/main/docs/screenshots/correction_pipeline.png" alt="Correction Pipeline" width="700"/>
 </p>
 
 ### Sample record (before and after correction)
