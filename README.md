@@ -75,8 +75,9 @@ I calibrated the LLM judge using dual labeling (manual + LLM). Out-of-box GPT-4o
 ## Quick Start
 
 ```bash
-# Install dependencies (requires uv)
+# Install dependencies and configure environment (requires uv)
 uv sync
+cp .env.example .env  # Add your OPENAI_API_KEY
 
 # Run the pipeline
 uv run python -m src.generator      # Generate 30 V1 records
@@ -87,8 +88,6 @@ uv run python -m src.analysis       # Generate charts + metrics.json
 # Launch demo
 uv run streamlit run streamlit_app.py
 ```
-
-Requires `OPENAI_API_KEY` in `.env`.
 
 ---
 
