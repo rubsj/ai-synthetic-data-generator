@@ -2,20 +2,20 @@
 
 **Date:** 2026-02-09
 **Status:** Accepted
-**Project:** P1 — Synthetic Data, Home DIY Repair
+**Project:** P1: Synthetic Data, Home DIY Repair
 **Category:** Tool Choice
 
 ## Context
 
-We needed to generate structured JSON from GPT-4o-mini conforming to a 7-field Pydantic schema (`DIYRepairRecord`). The raw OpenAI API returns strings requiring manual parsing, validation, and retry logic. As the first of 9 portfolio projects, the LLM → structured output → validation pattern chosen here would propagate across every subsequent project.
+I needed to generate structured JSON from GPT-4o-mini conforming to a 7-field Pydantic schema (`DIYRepairRecord`). The raw OpenAI API returns strings, so getting typed output means writing manual parsing, validation, and retry logic. Since this was the first portfolio project, whatever pattern I chose for LLM-to-structured-output would carry forward through P2 to P9.
 
 ## Decision
 
-Use **Instructor** (`instructor.from_openai(OpenAI())`) as the interface between our code and the OpenAI API. Instructor wraps the client and provides three capabilities we'd otherwise build by hand:
+Use **Instructor** (`instructor.from_openai(OpenAI())`) as the interface between my code and the OpenAI API. Instructor wraps the client and provides three capabilities I'd otherwise build by hand:
 
-1. **Schema injection** — calls `model_json_schema()` on the Pydantic model and appends it to the system prompt automatically.
-2. **Response parsing** — calls `model_validate_json()` on the LLM response, returning a typed Pydantic object.
-3. **Auto-retry with error feedback** — catches `ValidationError`, formats it as a follow-up message, and retries up to `max_retries=3`. The LLM sees its own mistake and self-corrects.
+1. **Schema injection**: calls `model_json_schema()` on the Pydantic model and appends it to the system prompt automatically.
+2. **Response parsing**: calls `model_validate_json()` on the LLM response, returning a typed Pydantic object.
+3. **Auto-retry with error feedback**: catches `ValidationError`, formats it as a follow-up message, and retries up to `max_retries=3`. The LLM sees its own mistake and self-corrects.
 
 ```python
 record = client.chat.completions.create(
@@ -30,38 +30,23 @@ The same pattern powers the evaluator (`response_model=JudgeResult`).
 
 ## Alternatives Considered
 
-| Option | Pros | Cons | Why Not |
-|--------|------|------|---------|
-| **Instructor** ✅ | One-line call, auto-retry with error feedback, Pydantic-native | Extra dependency, hides retry internals | — (selected) |
-| Raw OpenAI + `json_object` | No dependency, full control | ~60 lines boilerplate per call site: schema injection, JSON parsing, validation, retry loop | Build-vs-buy — not worth it across 9 projects |
-| LangChain `StructuredOutputParser` | Part of LangChain ecosystem | Heavy dependency for P1, weaker Pydantic integration | Premature — LangChain introduced in P5 |
-| OpenAI function calling | Built into API | Manual validation, no auto-retry, API being superseded | Missing the self-healing loop |
+**Raw OpenAI + `json_object`**: No dependency, full control. But it's roughly 60 lines of boilerplate per call site: schema serialization, JSON parsing, validation, and a retry loop. With two call sites (generator + evaluator), that's ~120 lines of error-prone plumbing. Not worth it for 9 projects.
+
+**LangChain `StructuredOutputParser`**: Part of the LangChain ecosystem. Heavy dependency for P1 and weaker Pydantic integration. I introduced LangChain later in P5 where it made sense.
+
+**OpenAI function calling**: Built into the API, but requires manual validation, has no auto-retry, and the API surface is being superseded. Missing the self-healing loop that makes Instructor useful.
 
 ## Quantified Validation
 
-- **Generation success**: **30/30 records** (100%), zero manual retries needed
-- **LOC saved**: ~60 lines of boilerplate eliminated per call site (measured by counting the manual implementation: `model_json_schema()` serialization into the system prompt, `json.loads()` + `try/except JSONDecodeError`, `model_validate()` + `try/except ValidationError`, retry loop with error formatting into natural language, conversation history management across retries, and retry exhaustion handling). With 2 call sites (generator + evaluator), **~120 lines** of error-prone code avoided
-- **Retry handling**: Instructor's auto-retry feeds `ValidationError` details back to the LLM. A manual retry loop requires formatting Pydantic errors into natural language, managing conversation history, and handling retry exhaustion — a non-trivial state machine
-- **Reuse**: Same `response_model=` pattern used in `generator.py` and `evaluator.py` with zero code duplication
+- 30/30 records generated successfully (100%), zero manual retries needed.
+- ~120 lines of boilerplate avoided across two call sites (generator + evaluator), covering schema injection, JSON parsing, validation, retry loops, and error formatting.
+- Retry handling is the real win: Instructor feeds `ValidationError` details back to the LLM as a follow-up message. Building that manually means managing conversation history across retries, formatting Pydantic errors into natural language, and handling retry exhaustion. That's a state machine I didn't want to own.
+- Same `response_model=` pattern used in both `generator.py` and `evaluator.py` with zero code duplication.
 
 ## Consequences
 
-**Easier:** Adding new Pydantic models works automatically — just pass `response_model=NewModel`. Validation errors become self-healing, which is why we hit **100% generation success**.
-**Harder:** Debugging failed retries requires Instructor logging hooks — intermediate LLM responses aren't visible by default. We accept a dependency on Instructor's API stability (mitigated: actively maintained, widely adopted).
-**Portability:** Pattern reused in P2 (QA pair generation), P4 (resume/job generation — 550 records at 100% success), and planned for P5–P9.
+Adding new Pydantic models just works: pass `response_model=NewModel` and Instructor handles schema injection, parsing, and retry. That's why generation hit 100% success with no manual intervention.
 
-## Cross-References
+Debugging failed retries is harder. Intermediate LLM responses aren't visible by default; you need Instructor's logging hooks. And there's a dependency on Instructor's API stability, though it's actively maintained and widely adopted.
 
-- **ADR-002**: Flat schema works because Instructor handles schema injection regardless of complexity — simplicity pays dividends at both schema and library level.
-- **ADR-003**: Same Instructor pattern powers the GPT-4o judge (`response_model=JudgeResult`).
-- **ADR-004**: Correction loop uses Instructor for re-generation, maintaining the self-healing retry pattern throughout the pipeline.
-
-## Java/TS Parallel
-
-Instructor is analogous to **Jackson + Bean Validation** with automatic retry — like `@Valid` on a `@RequestBody` that, instead of returning a 400, re-sends the request with validation errors appended so the client self-corrects. `response_model` is the `Class<T>` passed to `objectMapper.readValue()`, and `max_retries` maps to `@Retryable(maxAttempts=3)`.
-
-**The key insight:** The highest-leverage library decisions eliminate entire categories of bugs, not just lines of code. Instructor didn't just save 120 LOC — it eliminated the retry state machine as a failure surface, just as Spring Boot's `@Valid` eliminates manual deserialization bugs rather than merely shortening the code.
-
-## Interview Signal
-
-Demonstrates **build-vs-buy reasoning** and library evaluation methodology. Rather than building a custom retry loop (the "not invented here" trap), the engineer evaluated four options, chose a thin wrapper that provides maximum leverage, and validated the decision with quantified success metrics. This signals mature judgment about where to invest engineering effort vs. adopting existing solutions — a key skill for engineering managers building production ML systems.
+The pattern carried forward to P2 (QA pair generation), P4 (resume/job generation, 550 records at 100% success), and P5 through P9. ADR-002's flat schema decision works partly because Instructor handles schema injection regardless of nesting depth. ADR-003's GPT-4o judge and ADR-004's correction loop both use the same `response_model=` pattern.
