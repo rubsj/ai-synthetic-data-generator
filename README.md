@@ -91,6 +91,6 @@ uv run streamlit run streamlit_app.py
 
 ---
 
-Part of [AI Portfolio Sprint](../README.md). 9 projects, 8 weeks.
+Part of a [9-project AI engineering sprint](https://github.com/rubsj/ai-portfolio). Built Feb–May 2026.
 
-Built by **Ruby Jha** · [Portfolio Site](https://rubyjha.dev) · [LinkedIn](https://linkedin.com/in/jharuby) · [GitHub](https://github.com/rubsj/ai-portfolio)
+Built by **Ruby Jha** · [LinkedIn](https://linkedin.com/in/jharuby) · [GitHub](https://github.com/rubsj/ai-portfolio)
