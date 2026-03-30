@@ -47,7 +47,7 @@ See [`data/corrected/`](data/corrected/) for full before/after pairs. See [`data
 ## Architecture
 
 ```mermaid
-flowchart LR
+flowchart TD
     T[Templates<br/>v1 & v2] --> G[Generator<br/>GPT-4o-mini + Instructor]
     G --> V[Validator<br/>Pydantic]
     V --> E[Evaluator<br/>GPT-4o Judge]
