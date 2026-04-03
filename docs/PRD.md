@@ -1,6 +1,6 @@
 # PRD: P1 — Synthetic Data Generation for Home DIY Repair
 
-> **This is the implementation contract.** Claude Code: read this + both CLAUDE.md files before starting.
+> **This is the implementation contract.** Claude Code: read this + both ../CLAUDE.md files before starting.
 > Do NOT re-debate architecture decisions. They are final. If something is ambiguous, ask the user.
 
 **Project:** P1 — Synthetic Data, Home DIY Repair
